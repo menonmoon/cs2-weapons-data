@@ -63,5 +63,37 @@ curl "http://localhost:8000/price?market_hash_name=AK-47%20%7C%20Redline%20%28Fi
 
 *Note: The Steam API has strict rate limits. If you request prices too quickly, you may receive a 429 Too Many Requests or 404 response.*
 
+### 5. `GET /inventory/{steam_id}`
+Fetches a specific player's public CS2 inventory and optionally fetches prices for all items to calculate total inventory value. Returns items sorted from highest to lowest price.
+
+**Path Parameters:**
+- `steam_id` (str, required): The user's Steam ID64.
+
+**Query Parameters:**
+- `fetch_prices` (bool, optional, default: True): Attempt to query Steam for prices. Setting this to false will return the inventory much faster by skipping Steam pricing rate limits.
+
+**Example:**
+```bash
+curl "http://localhost:8000/inventory/76561198084749846"
+```
+
+*Note: Steam's Inventory and Price APIs rate limit very aggressively. Fetching prices for large inventories may fail partially or completely with 429 Too Many Requests.*
+
 ## Swagger Documentation
 Interactive API documentation is available at `http://localhost:8000/docs` while the server is running.
+
+## Hosting on GitHub
+
+Because this is a **Python backend API** (FastAPI), it cannot be hosted directly on **GitHub Pages**, which only supports static frontend files (HTML/CSS/JS).
+
+To host this API for free and connect it to a GitHub repository, you can use **Render**:
+
+1. Push this repository to GitHub.
+2. Go to [Render.com](https://render.com/) and create a free account.
+3. Click "New" -> "Web Service".
+4. Connect your GitHub account and select your repository.
+5. Use the following settings:
+   - **Environment:** `Python`
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port 10000`
+6. Click "Create Web Service". Render will build and deploy your API automatically whenever you push to GitHub!
