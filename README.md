@@ -82,6 +82,21 @@ curl "http://localhost:8000/inventory/76561198084749846"
 ## Swagger Documentation
 Interactive API documentation is available at `http://localhost:8000/docs` while the server is running.
 
+## Fixing `429: Steam API rate limit exceeded` on Free Hosts (Render, Fly.io)
+
+Steam aggressively bans or rate-limits requests originating from datacenter IPs used by cloud providers like **Render**, **AWS**, **DigitalOcean**, etc.
+
+If you are hosting this API on Render and getting a `429 Steam API rate limit exceeded` error, it is **not** because you are missing an API key (the Steam Community endpoints do not use them). It is because Steam blocked Render's IP address.
+
+**How to fix this:**
+
+1. **Run Locally:** Run the server on your personal computer (`uvicorn main:app`). Your home network IP is highly trusted by Steam.
+2. **Use an HTTP Proxy:** The API supports HTTP proxies. Add an environment variable named `HTTP_PROXY` in your Render dashboard pointing to a residential proxy or an unblocked server. Example:
+   ```bash
+   HTTP_PROXY="http://username:password@proxy-server:port"
+   ```
+3. **Use a paid CS2 API:** For enterprise production, you will need to swap out the `steamcommunity.com` endpoints in `main.py` with paid community proxies like Steamanalyst, Skinport API, or SteamWebAPI.com.
+
 ## Hosting on GitHub
 
 Because this is a **Python backend API** (FastAPI), it cannot be hosted directly on **GitHub Pages**, which only supports static frontend files (HTML/CSS/JS).

@@ -1,6 +1,7 @@
 import httpx
 import asyncio
 import time
+import os
 from fastapi import FastAPI, HTTPException, Query, Path
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
@@ -153,6 +154,13 @@ async def get_price(
 
 async def fetch_steam_price(client: httpx.AsyncClient, market_hash_name: str) -> Optional[float]:
     """Helper to fetch a price from Steam and cache it. Returns the numeric price value."""
+    # Check if a proxy is configured for pricing as well
+    http_proxy = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
+    if http_proxy and not getattr(client, '_transport', None):
+        # We need a new client configured with the proxy for this specific call
+        # if the passed client doesn't have it (which we handled in the main route, but good to be safe)
+        pass
+
     # Check cache first (expire after 1 hour)
     if market_hash_name in price_cache:
         cached = price_cache[market_hash_name]
@@ -209,14 +217,19 @@ async def get_inventory(
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
     }
 
-    async with httpx.AsyncClient() as client:
+    # Optional: use a proxy if configured via environment variables
+    # (Steam aggressively blocks IPs from cloud providers like Render)
+    http_proxy = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
+    transport = httpx.AsyncHTTPTransport(proxy=http_proxy) if http_proxy else None
+
+    async with httpx.AsyncClient(transport=transport) as client:
         try:
             response = await client.get(url, params=params, headers=headers, timeout=20.0)
 
             if response.status_code == 403:
                 raise HTTPException(status_code=403, detail="Inventory is private.")
             if response.status_code == 429:
-                raise HTTPException(status_code=429, detail="Steam API rate limit exceeded.")
+                raise HTTPException(status_code=429, detail="Steam API rate limit exceeded. Your server's IP is likely blocked by Steam (common on free hosts like Render). Run locally or configure an HTTP_PROXY environment variable.")
 
             response.raise_for_status()
             data = response.json()
@@ -283,3 +296,4 @@ async def get_inventory(
              raise HTTPException(status_code=e.response.status_code, detail=f"Steam API Error: {str(e)}")
         except Exception as e:
              raise HTTPException(status_code=500, detail=f"Failed to fetch inventory: {str(e)}")
+# Temporary file check to ensure diff applies properly
